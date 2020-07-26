@@ -1,6 +1,6 @@
-// Stripped-down primitive printf-style formatting routines,
-// used in common by printf, sprintf, fprintf, etc.
-// This code is also used by both the kernel and user programs.
+// 精简的基本printf样式格式化例程，
+// 被printf，sprintf，fprintf等共同使用
+// 内核和用户程序也使用此代码。
 
 #include <inc/types.h>
 #include <inc/stdio.h>
@@ -9,13 +9,13 @@
 #include <inc/error.h>
 
 /*
- * Space or zero padding and a field width are supported for the numeric
- * formats only.
+ * 数字支持空格或零填充和字段宽度格式。
+ * 
  *
- * The special format %e takes an integer error code
- * and prints a string describing the error.
- * The integer may be positive or negative,
- * so that -E_NO_MEM and E_NO_MEM are equivalent.
+ * 特殊格式％e带有整数错误代码
+ * 并输出描述错误的字符串。
+ * 整数可以是正数或负数，
+ * ，使-E_NO_MEM和E_NO_MEM等效。
  */
 
 static const char * const error_string[MAXERROR] =
@@ -29,28 +29,28 @@ static const char * const error_string[MAXERROR] =
 };
 
 /*
- * Print a number (base <= 16) in reverse order,
- * using specified putch function and associated pointer putdat.
+ * 使用指定的putch函数和关联的指针putdat
+ * 以相反的顺序打印数字（基数<= 16）.
  */
 static void
 printnum(void (*putch)(int, void*), void *putdat,
 	 unsigned long long num, unsigned base, int width, int padc)
 {
-	// first recursively print all preceding (more significant) digits
+	// 首先递归地打印所有前面的（更重要的）数字
 	if (num >= base) {
 		printnum(putch, putdat, num / base, base, width - 1, padc);
 	} else {
-		// print any needed pad characters before first digit
+		// 在第一个数字前打印任何需要的填充字符
 		while (--width > 0)
 			putch(padc, putdat);
 	}
 
-	// then print this (the least significant) digit
+	// 然后打印此（最低有效）数字
 	putch("0123456789abcdef"[num % base], putdat);
 }
 
-// Get an unsigned int of various possible sizes from a varargs list,
-// depending on the lflag parameter.
+// 从varargs列表中获取各种可能大小的unsigned int，
+// 取决于lflag参数。
 static unsigned long long
 getuint(va_list *ap, int lflag)
 {
@@ -62,8 +62,8 @@ getuint(va_list *ap, int lflag)
 		return va_arg(*ap, unsigned int);
 }
 
-// Same as getuint but signed - can't use getuint
-// because of sign extension
+// 与getuint相同
+// 符号扩展
 static long long
 getint(va_list *ap, int lflag)
 {
@@ -76,7 +76,7 @@ getint(va_list *ap, int lflag)
 }
 
 
-// Main function to format and print a string.
+// 用于格式化和打印字符串的主要函数
 void printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
 
 void
@@ -95,7 +95,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			putch(ch, putdat);
 		}
 
-		// Process a %-escape sequence
+		// 处理％转义序列
 		padc = ' ';
 		width = -1;
 		precision = -1;
@@ -104,17 +104,17 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 	reswitch:
 		switch (ch = *(unsigned char *) fmt++) {
 
-		// flag to pad on the right
+		// 标记以在右侧填充
 		case '-':
 			padc = '-';
 			goto reswitch;
 
-		// flag to pad with 0's instead of spaces
+		// 标记以0代替空格
 		case '0':
 			padc = '0';
 			goto reswitch;
 
-		// width field
+		// 宽度字段
 		case '1':
 		case '2':
 		case '3':
@@ -150,17 +150,17 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 				width = precision, precision = -1;
 			goto reswitch;
 
-		// long flag (doubled for long long)
+		// long标志（对long long加倍）
 		case 'l':
 			lflag++;
 			goto reswitch;
 
-		// character
+		// 字符
 		case 'c':
 			putch(va_arg(ap, int), putdat);
 			break;
 
-		// error message
+		// 错误信息
 		case 'e':
 			err = va_arg(ap, int);
 			if (err < 0)
@@ -171,7 +171,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 				printfmt(putch, putdat, "%s", p);
 			break;
 
-		// string
+		// 字符串
 		case 's':
 			if ((p = va_arg(ap, char *)) == NULL)
 				p = "(null)";
@@ -187,7 +187,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 				putch(' ', putdat);
 			break;
 
-		// (signed) decimal
+		// （带符号）十进制
 		case 'd':
 			num = getint(&ap, lflag);
 			if ((long long) num < 0) {
@@ -197,13 +197,13 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			base = 10;
 			goto number;
 
-		// unsigned decimal
+		// 无符号十进制
 		case 'u':
 			num = getuint(&ap, lflag);
 			base = 10;
 			goto number;
 
-		// (unsigned) octal
+		// （无符号）八进制
 		case 'o':
 			num = getint(&ap, lflag);
 			if ((long long) num < 0) {
@@ -213,7 +213,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			base = 8;
 			goto number;
 
-		// pointer
+		// 指针
 		case 'p':
 			putch('0', putdat);
 			putch('x', putdat);
@@ -222,7 +222,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			base = 16;
 			goto number;
 
-		// (unsigned) hexadecimal
+		// （无符号）十六进制
 		case 'x':
 			num = getuint(&ap, lflag);
 			base = 16;
@@ -230,12 +230,12 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			printnum(putch, putdat, num, base, width, padc);
 			break;
 
-		// escaped '%' character
+		// 跳过 %
 		case '%':
 			putch(ch, putdat);
 			break;
 
-		// unrecognized escape sequence - just print it literally
+		// 遇到不符合规范的%格式，跳过
 		default:
 			putch('%', putdat);
 			for (fmt--; fmt[-1] != '%'; fmt--)
