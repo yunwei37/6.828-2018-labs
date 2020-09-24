@@ -181,6 +181,7 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, UPAGES, npages * sizeof(struct PageInfo), PADDR(pages), PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -193,6 +194,7 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -202,6 +204,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KERNBASE, 0xffffffff - KERNBASE, 0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -395,6 +398,11 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	for(size_t i = 0; i < size; i += PGSIZE){
+		tlb_invalidate(pgdir, (void *)va + i);
+		pte_t* pte = pgdir_walk(pgdir, (const void *)va + i, 1);
+		*pte = (pa + i) | PTE_P | perm;
+	}
 }
 
 //
@@ -489,10 +497,7 @@ page_remove(pde_t *pgdir, void *va)
 		return;
 	assert(p->pp_ref > 0);
 	assert(*pte_store & PTE_P);
-	p->pp_ref--;
-	if(p->pp_ref == 0){
-		page_free(p);
-	}
+	page_decref(p);
 	*pte_store = 0;
 	tlb_invalidate(pgdir, va);
 }
