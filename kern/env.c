@@ -356,6 +356,7 @@ load_icode(struct Env *e, uint8_t *binary)
 		
 		region_alloc(e, (void*)ph->p_va, ph->p_memsz);
 		lcr3(PADDR(e->env_pgdir));
+		memset((void*)ph->p_va, 0, ph->p_memsz);
 		memcpy((void*)ph->p_va, (void*)elf + ph->p_offset, ph->p_filesz);
 		lcr3(PADDR(kern_pgdir));
 	}
