@@ -536,7 +536,7 @@ env_run(struct Env *e)
 	lcr3(PADDR(curenv->env_pgdir));
 
 	// cprintf("start env_pop and running...\n");
-
+	unlock_kernel();
 	env_pop_tf(&curenv->env_tf);
 
 	panic("env_run should not reach here");
