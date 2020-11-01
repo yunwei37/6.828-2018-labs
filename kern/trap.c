@@ -367,7 +367,35 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	
+	if (curenv->env_pgfault_upcall) {
+		struct UTrapframe *utf;
+		user_mem_assert(curenv, curenv->env_pgfault_upcall, 1, PTE_P|PTE_U);
 
+		if (curenv->env_tf.tf_esp <= UXSTACKTOP-1 && curenv->env_tf.tf_esp >= UXSTACKTOP - PGSIZE) {
+			utf = (struct UTrapframe*)(curenv->env_tf.tf_esp - sizeof(size_t) - sizeof(*utf));
+			if (utf < (struct UTrapframe*)(UXSTACKTOP - PGSIZE)) {
+				cprintf("the exception stack overflows.");
+				goto out;
+			}
+		} else {
+			utf = (struct UTrapframe*)(UXSTACKTOP - sizeof(*utf));
+		}
+		user_mem_assert(curenv, utf, sizeof(*utf), PTE_P|PTE_U|PTE_W);
+		utf->utf_regs = curenv->env_tf.tf_regs;
+		utf->utf_esp = curenv->env_tf.tf_esp;
+		utf->utf_eflags = curenv->env_tf.tf_eflags;
+		utf->utf_eip = curenv->env_tf.tf_eip;
+		utf->utf_err = curenv->env_tf.tf_err;
+		utf->utf_fault_va = fault_va;
+
+		curenv->env_tf.tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
+		curenv->env_tf.tf_esp = (uintptr_t)utf;
+
+		env_run(curenv);
+	}
+
+out:
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
