@@ -88,34 +88,48 @@ void handler19();
 
 void handler48();
 
+void handler32();
+void handler33();
+void handler34();
+void handler35();
+void handler36();
+void handler37();
+
 void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
-	SETGATE(idt[0], 1, GD_KT, handler0, 0);
-	SETGATE(idt[1], 1, GD_KT, handler1, 3);
-	SETGATE(idt[2], 1, GD_KT, handler2, 0);
-	SETGATE(idt[3], 1, GD_KT, handler3, 3);
-	SETGATE(idt[4], 1, GD_KT, handler4, 0);
-	SETGATE(idt[5], 1, GD_KT, handler5, 0);
-	SETGATE(idt[6], 1, GD_KT, handler6, 0);
-	SETGATE(idt[7], 1, GD_KT, handler7, 0);
-	SETGATE(idt[8], 1, GD_KT, handler8, 0);
+	SETGATE(idt[0], 0, GD_KT, handler0, 0);
+	SETGATE(idt[1], 0, GD_KT, handler1, 3);
+	SETGATE(idt[2], 0, GD_KT, handler2, 0);
+	SETGATE(idt[3], 0, GD_KT, handler3, 3);
+	SETGATE(idt[4], 0, GD_KT, handler4, 0);
+	SETGATE(idt[5], 0, GD_KT, handler5, 0);
+	SETGATE(idt[6], 0, GD_KT, handler6, 0);
+	SETGATE(idt[7], 0, GD_KT, handler7, 0);
+	SETGATE(idt[8], 0, GD_KT, handler8, 0);
 
-	SETGATE(idt[10], 1, GD_KT, handler10, 0);
-	SETGATE(idt[11], 1, GD_KT, handler11, 0);
-	SETGATE(idt[12], 1, GD_KT, handler12, 0);
-	SETGATE(idt[13], 1, GD_KT, handler13, 0);
-	SETGATE(idt[14], 1, GD_KT, handler14, 0);
+	SETGATE(idt[10], 0, GD_KT, handler10, 0);
+	SETGATE(idt[11], 0, GD_KT, handler11, 0);
+	SETGATE(idt[12], 0, GD_KT, handler12, 0);
+	SETGATE(idt[13], 0, GD_KT, handler13, 0);
+	SETGATE(idt[14], 0, GD_KT, handler14, 0);
 
-	SETGATE(idt[16], 1, GD_KT, handler16, 0);
-	SETGATE(idt[17], 1, GD_KT, handler17, 0);
-	SETGATE(idt[18], 1, GD_KT, handler18, 0);
-	SETGATE(idt[19], 1, GD_KT, handler19, 0);
+	SETGATE(idt[16], 0, GD_KT, handler16, 0);
+	SETGATE(idt[17], 0, GD_KT, handler17, 0);
+	SETGATE(idt[18], 0, GD_KT, handler18, 0);
+	SETGATE(idt[19], 0, GD_KT, handler19, 0);
 
-	SETGATE(idt[48], 1, GD_KT, handler48, 3);
+	SETGATE(idt[48], 0, GD_KT, handler48, 3);
+
+	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, handler32, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, GD_KT, handler33, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, handler34, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_SPURIOUS], 0, GD_KT, handler35, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_IDE], 0, GD_KT, handler36, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_ERROR], 0, GD_KT, handler37, 0);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -151,7 +165,7 @@ trap_init_percpu(void)
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
-	thiscpu->cpu_ts.ts_esp0 = KSTACKTOP - thiscpu->cpu_id * (KSTKSIZE + KSTKGAP);
+	thiscpu->cpu_ts.ts_esp0 = (uintptr_t)percpu_kstacks[cpunum()];
 	thiscpu->cpu_ts.ts_ss0 = GD_KD;
 	thiscpu->cpu_ts.ts_iomb = sizeof(struct Taskstate);
 
@@ -246,6 +260,12 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
+		//cprintf("IRQ_TIMER interrupt\n");
+		lapic_eoi();
+		sched_yield();
+		return;
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -263,6 +283,9 @@ trap(struct Trapframe *tf)
 	// The environment may have set DF and some versions
 	// of GCC rely on DF being clear
 	asm volatile("cld" ::: "cc");
+
+	//cprintf("%08x trap va %s ip %08x\n", curenv? curenv->env_id:0, 
+	//	 trapname(tf->tf_trapno), tf->tf_eip);
 
 	// Halt the CPU if some other CPU has called panic()
 	extern char *panicstr;
