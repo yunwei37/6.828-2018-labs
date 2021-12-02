@@ -284,8 +284,7 @@ trap(struct Trapframe *tf)
 	// of GCC rely on DF being clear
 	asm volatile("cld" ::: "cc");
 
-	//cprintf("%08x trap va %s ip %08x\n", curenv? curenv->env_id:0, 
-	//	 trapname(tf->tf_trapno), tf->tf_eip);
+	//cprintf("%08x trap %s eip %08x\n", curenv? curenv->env_id:0, trapname(tf->tf_trapno), tf->tf_eip);
 
 	// Halt the CPU if some other CPU has called panic()
 	extern char *panicstr;
