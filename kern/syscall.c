@@ -255,6 +255,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	pte_t *pte;
 	
 	if ((uintptr_t)srcva >= UTOP || (uintptr_t)srcva % PGSIZE || (uintptr_t)srcva >= UTOP || (uintptr_t)srcva % PGSIZE) {
+		// cprintf("srcva >= UTOP or srcva is not page-aligned, or dstva >= UTOP or dstva is not page-aligned.");
 		return -E_INVAL;
 	}
 	if (perm & ~PTE_SYSCALL) {
