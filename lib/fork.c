@@ -20,7 +20,7 @@ pgfault(struct UTrapframe *utf)
 	void *addr = (void *) utf->utf_fault_va;
 	uint32_t err = utf->utf_err;
 	int r;
-
+	//cprintf("start map in our own private writable copy %x\n", addr);
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
 	// Hint:
@@ -29,10 +29,10 @@ pgfault(struct UTrapframe *utf)
 
 	// LAB 4: Your code here.
 	if (!(err & 2)) {
-		panic("the faulting access was not write at %x", addr);
+		panic("the faulting access was not write at %x %08x %08x", addr, utf->utf_eip, err);
 	}
 	if (!(uvpt[PGNUM(addr)] & PTE_COW)) {
-		panic("the faulting access was not to a copy-on-write page at %x", addr);
+		panic("the faulting access was not to a copy-on-write page at %08x %08x", addr, utf->utf_eip);
 	}
 	// cprintf("pg fault %x envid %d\n", addr, sys_getenvid());
 
@@ -51,7 +51,7 @@ pgfault(struct UTrapframe *utf)
 		panic("sys_page_map: %e", r);
 	if ((r = sys_page_unmap(0, UTEMP)) < 0)
 		panic("sys_page_unmap: %e", r);
-	cprintf("map in our own private writable copy %x\n", addr);
+	//cprintf("map in our own private writable copy %x\n", addr);
 }
 
 //
@@ -71,6 +71,7 @@ duppage(envid_t envid, void * pn)
 	int r;
 
 	// LAB 4: Your code here.
+	// cprintf("duppage found page %08x\n", pn);
 	if (uvpt[PGNUM(pn)] & PTE_COW || uvpt[PGNUM(pn)] & PTE_W) {
 		r = sys_page_map(0, pn, envid, pn, PTE_P|PTE_U|PTE_COW);
 		if (r < 0)
@@ -79,7 +80,7 @@ duppage(envid_t envid, void * pn)
 		if (r < 0)
 			panic("sys_page_map: %e", r);
 	} else {
-		r = sys_page_map(0, pn, 0, pn, PTE_P|PTE_U);
+		r = sys_page_map(0, pn, envid, pn, PTE_P|PTE_U);
 		if (r < 0)
 			panic("sys_page_map: %e", r);
 	}
@@ -137,25 +138,34 @@ fork(void)
 
 	// We're the parent.
 	// Eagerly copy our entire address space into the child.
-	// This is NOT what you should do in your fork implementation.
 	for (addr = (uint8_t*) UTEXT; addr < end; addr += PGSIZE)
 		duppage(envid, addr);
-
+	//cprintf("fork duppage addr page %08x\n", addr);
 	// Also copy the stack we are currently running on.
 	dump_duppage(envid, ROUNDDOWN(&addr, PGSIZE));
-
+	//cprintf("fork duppage dump_duppage page %08x\n", ROUNDDOWN(&addr, PGSIZE));
+	for (addr; addr < (uint8_t*)USTACKTOP; addr += PGSIZE) {
+		if ((uvpd[PDX(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_SHARE)) {
+			//cprintf("fork duppage PTE_SHARE page %08x\n", addr);
+			r = sys_page_map(0, addr, envid, addr, PTE_SYSCALL);
+			if (r < 0)
+				panic("sys_page_map: %e", r);
+		}
+	}
+	
 	// Copy our page fault handler setup to the child.
 	if ((r = sys_page_alloc(envid, (void*)(UXSTACKTOP - PGSIZE), PTE_P|PTE_U|PTE_W)) < 0)
 		cprintf("set_pgfault_handler: sys_page_alloc: %e\n", r);
 	if (sys_env_set_pgfault_upcall(envid, _pgfault_upcall) < 0){
 		cprintf("set_pgfault_handler: sys_env_set_pgfault_upcall failed\n");
 	}
+	//cprintf("ROUNDDOWN(&_pgfault_handler, PGSIZE) %08x %08x\n", ROUNDDOWN(&_pgfault_handler, PGSIZE), &_pgfault_handler);
 	dump_duppage(envid, ROUNDDOWN(&_pgfault_handler, PGSIZE));
 
 	// Start the child environment running
 	if ((r = sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
 		panic("sys_env_set_status: %e", r);
-
+	// cprintf("fork success %08x\n", envid);
 	return envid;
 }
 
