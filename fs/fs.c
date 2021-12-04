@@ -151,7 +151,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 		   return -E_INVAL;
 	   }
 	   // cprintf("file_block_walk %d %08x %08x %08x\n", filebno, &(f->f_indirect), f->f_indirect, super->s_nblocks);
-	   if (filebno < (f->f_size + BLKSIZE - 1) / BLKSIZE) {
+	   if (filebno < NDIRECT) {
 		   if (ppdiskbno) {
 			   *ppdiskbno = f->f_direct + filebno;
 		   }
@@ -172,10 +172,10 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 				memset(addr, 0, BLKSIZE);
 				flush_block(addr);
 		    }
-			// cprintf("file_block_walk %08x  %08x %08x\n", &(f->f_indirect), f->f_indirect, super->s_nblocks);
 		    if (ppdiskbno) {
-				*ppdiskbno = diskaddr(f->f_indirect) + filebno - NDIRECT;
+				*ppdiskbno = diskaddr(f->f_indirect) + (filebno - NDIRECT)*4;
 			}
+			//cprintf("file_block_walk %08x  %08x %08x\n", &(f->f_indirect), f->f_indirect, **ppdiskbno);
 		    return 0;
 	   }
 	   panic("not reach here");
@@ -506,11 +506,11 @@ file_flush(struct File *f)
 		if (file_block_walk(f, i, &pdiskbno, 0) < 0 ||
 		    pdiskbno == NULL || *pdiskbno == 0)
 			continue;
-		cprintf("flush_block(diskaddr(*pdiskbno)) %08x\n", *pdiskbno);
+		// cprintf("flush_block(diskaddr(*pdiskbno)) %08x\n", *pdiskbno);
 		flush_block(diskaddr(*pdiskbno));
 	}
 	flush_block(f);
-	cprintf("file_flush f->f_indirect %08x\n", f->f_indirect);
+	// cprintf("file_flush f->f_indirect %08x\n", f->f_indirect);
 	if (f->f_indirect)
 		flush_block(diskaddr(f->f_indirect));
 }
