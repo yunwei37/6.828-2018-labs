@@ -19,5 +19,7 @@ MIT 6.828 operating system engineering 2018 fall
 4. [lab3A 用户环境和异常处理](notes/lab3A.md)
 5. [lab3B 页面错误，断点异常和系统调用](notes/lab3B.md)
 6. [lab4A 多处理器支持和协作多任务](notes/lab4A.md)
+7. [lab4B/C Copy-on-Write Fork/抢占式多任务和进程间通信 (IPC)](notes/lab4BC.md)
+8. [Lab 5: File system, Spawn and Shell](notes/lab5.md)
 
 
