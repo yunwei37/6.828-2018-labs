@@ -35,7 +35,7 @@ pci_e1000_attach(struct pci_func *pcif)
     for (int i = 0;i < TDARRAY_SIZE; ++i) {
         TDarray[i].addr = PADDR((tx_buffer + i * 1518));
         TDarray[i].status |= 1;
-        TDarray[i].length = 1518;
+        //TDarray[i].length = 1518;
     }
 
     write_reg(E1000_TDBAH, 0);
@@ -49,7 +49,7 @@ pci_e1000_attach(struct pci_func *pcif)
     tctl |= 0x40000; // E1000_TCTL_COLD
     write_reg(E1000_TCTL, tctl);
     write_reg(E1000_TIPG, 0xa + (4 << 10) + (6 << 20));
-
+    /*
     TDarray[0].status &= (~1);
     strcpy(tx_buffer,"I'm here!I'm here!I'm here!I'm here!I'm here!I'm here!I'm here!I'm here!I'm here!I'm here!I'm here!I'm here!I'm here!");
     TDarray[0].cmd |= 8; // E1000_TXD_CMD_RS
@@ -57,7 +57,7 @@ pci_e1000_attach(struct pci_func *pcif)
     write_reg(E1000_TDT, 1);
     assert(read_reg(E1000_TDH) == 1);
     assert(TDarray[0].status & 1);
-    
+    */
     return 1;
 }
 
@@ -66,8 +66,9 @@ transmit_packet(void *src, size_t length) {
     int tail;
     
     assert(length < 1518);
-    tail = (read_reg(E1000_TDT) + 1) % TDARRAY_SIZE;
+    tail = read_reg(E1000_TDT);
     if (!(TDarray[tail].status & 1)) {
+        cprintf("TDarray full tail %d\n", tail);
         return -E_NO_MEM;
     }
     memcpy(tx_buffer + 1518 * tail , src, length);
@@ -75,6 +76,8 @@ transmit_packet(void *src, size_t length) {
     TDarray[tail].cmd |= 1; // E1000_TXD_CMD_EOP
     TDarray[tail].status &= (~1);
     TDarray[tail].length = length;
-    write_reg(E1000_TDT, tail);
+    cprintf("send tail %d length %d %.*s\n", tail, TDarray[tail].length, length, tx_buffer + 1518 * tail);
+    write_reg(E1000_TDT, (tail + 1) % TDARRAY_SIZE);
+    //assert(TDarray[tail].status & 1);
     return 0;
 }

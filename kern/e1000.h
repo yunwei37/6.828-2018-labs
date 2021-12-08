@@ -79,6 +79,6 @@ struct jif_pkt {
 // Forward declarations
 int pci_e1000_attach(struct pci_func *pcif);
 
-int ransmit_packet(void *src, size_t length);
+int transmit_packet(void *src, size_t length);
 
 #endif  // SOL >= 6
