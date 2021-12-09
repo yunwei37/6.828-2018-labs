@@ -11,6 +11,8 @@ MIT 6.828 operating system engineering 2018 fall
 
 查看每个 lab 具体对应的源代码，请切换到对应分支。
 
+(咕咕咕到了21年...去年发生了太多糟糕的事情了)
+
 ## Documents
 
 1. [工具链搭建](notes/工具链.md)
@@ -21,5 +23,6 @@ MIT 6.828 operating system engineering 2018 fall
 6. [lab4A 多处理器支持和协作多任务](notes/lab4A.md)
 7. [lab4B/C Copy-on-Write Fork/抢占式多任务和进程间通信 (IPC)](notes/lab4BC.md)
 8. [Lab 5: File system, Spawn and Shell](notes/lab5.md)
+9. [Lab 6: 网络驱动程序](notes/lab6.md)
 
 
