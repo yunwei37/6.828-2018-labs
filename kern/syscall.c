@@ -464,6 +464,15 @@ sys_net_transmit(void *src, size_t length)
 	return transmit_packet(src, length);
 }
 
+static int
+sys_net_receive(void *dst)
+{
+	// LAB 6: Your code here.
+	//cprintf("sys_net_receive va %08x", dst);
+	user_mem_assert(curenv, dst, 2048, PTE_U|PTE_W);
+	return receive_packet(dst);
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -510,6 +519,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_time_msec();
 	case SYS_net_transmit:
 		return sys_net_transmit((void*)a1, (size_t)a2);
+	case SYS_net_receive:
+		return sys_net_receive((void*)a1);
 	default:
 		return -E_INVAL;
 	}
